@@ -1,0 +1,42 @@
+@using global::Menu
+@using Sandbox.UI
+@inherits Panel
+
+@namespace Menu
+
+<root class="panel settings-menu">
+	<div class="title">
+		Settings
+	</div>
+	<div class="settings" @ref=Settings>
+		<Checkbox Checked="@PieceNames" ValueChanged="@OnPieceNames">Enable pieces names display</Checkbox>
+		<Checkbox Checked="@Debug" ValueChanged="@OnDebug">Enable debug mode</Checkbox>
+	</div>
+	<div class="settings-buttons">
+		<Button onclick=@Return>Return</Button>
+	</div>
+</root>
+
+@code
+{
+	public static bool PieceNames;
+	public static bool Debug;
+	
+	public Panel Settings;
+	public MenuComponent Menu;
+
+	public void OnPieceNames(bool enabled)
+	{
+		PieceNames = enabled;
+	}
+	
+	public void OnDebug(bool enabled)
+	{
+		Debug = enabled;
+	}
+
+	void Return()
+	{
+		Menu.MainMenu(this);
+	}
+}

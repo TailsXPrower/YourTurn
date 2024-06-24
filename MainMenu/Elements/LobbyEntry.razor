@@ -1,0 +1,34 @@
+@using Sandbox.Network
+@using Sandbox.UI
+@using System
+@inherits Panel
+
+@namespace Menu
+
+<root class="lobby-entry">
+	<div class="name">
+		@Lobby.Name
+	</div>
+	<div class="members">
+    	@Lobby.Members / @Lobby.MaxMembers
+	</div>
+</root>
+
+@code
+{
+	public LobbyInformation Lobby;
+	public Action OnClick;
+
+	public override void OnButtonEvent( ButtonEvent e )
+	{
+		base.OnButtonEvent( e );
+		
+		if (e.Button.Equals("mouseleft"))
+			OnClick.Invoke();
+	}
+
+	/// <summary>
+	/// the hash determines if the system should be rebuilt. If it changes, it will be rebuilt
+	/// </summary>
+	protected override int BuildHash() => System.HashCode.Combine( Lobby );
+}

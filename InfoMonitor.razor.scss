@@ -1,0 +1,54 @@
+InfoMonitor
+{
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-color: #000;
+	justify-content: center;
+	align-items: center;
+	font-weight: bold;
+
+	.title
+	{
+		font-size: 150px;
+		font-family: Poppins;
+		color: #fff;
+	}
+	
+	.name {
+		padding: 0 40px 0 40px;
+		border-bottom: 8px #fff;
+		height: 20%;
+		width: 100%;
+		align-items: center;
+		font-size: 75px;
+		font-family: Poppins;
+		color: #fff;
+	}
+	
+	.counter {
+		position: absolute;
+		bottom: 0;
+		height: 80%;
+		width: 100%;
+		align-items: center;
+		justify-content: center;
+	}
+	
+	.panel {
+		width: 50%;
+		height: 100%;
+	}
+	
+	.left {
+		position: absolute;
+		left: 0;
+	}
+	
+	.right {
+		position: absolute;
+		right: 0;
+	}
+}

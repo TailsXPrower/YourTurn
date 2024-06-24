@@ -1,0 +1,762 @@
+@using Chess
+@using global::Menu
+@using Sandbox.AI
+@using System
+@inherits PanelComponent
+
+<root onclick=@SelectObject>
+	<div class="left panel" onmouseover=@Left>
+		
+	</div>
+	<div class="right panel" onmouseover=@Right>
+	
+	</div>
+	@*<div class="buttons">
+		<button onclick=@Start>Start</button>
+		<button onclick=@Restart>Restart</button>
+		<button onclick=@Stop>Stop</button>
+		<button onclick=@Win>Win</button>
+	</div>*@
+</root>
+
+@code
+{
+	[Property] public GameObject Camera { get; set; }
+	[Property] public GameObject Hand { get; set; }
+
+	public GameObject HitObject;
+	public GameObject SelectedObject;
+
+	public FigureColor Player = FigureColor.White;
+
+	public bool BookOpened;
+
+	protected override void OnStart()
+	{
+		base.OnStart();
+		Panel.Style.BackgroundColor = Color.Black;
+
+		var anim = Animation.Play( GameObject, "ui_start", 2, EasingFunc.EaseInCubic, ( gameObject, progress ) =>
+		{
+			Panel.Style.BackgroundColor = new Color(0, 1 - progress);
+		} );
+		anim.OnComplete( gameObject =>
+		{
+			Panel.Style.BackgroundColor = Color.Transparent;
+		} );
+	}
+
+	public void Close()
+	{
+		Panel.Style.BackgroundColor = Color.Transparent;
+
+		var anim = Animation.Play( GameObject, "ui_start", 2, EasingFunc.EaseInCubic, ( gameObject, progress ) =>
+		{
+			Panel.Style.BackgroundColor = new Color(0, progress);
+		} );
+		anim.OnComplete( gameObject =>
+		{
+			Panel.Style.BackgroundColor = Color.Black;
+		} );
+	}
+
+	protected override void OnUpdate()
+	{
+		base.OnUpdate();
+
+		var controller = Scene.Components.GetInDescendants<GameController>();
+		if ( controller.GameType == GameType.Player && controller.Players.ContainsKey(Connection.Local.Id) )
+		{
+			Player = controller.Players[Connection.Local.Id];
+		}
+
+		if ( Scene.Components.GetInDescendants<GameController>().IsPaused )
+		{
+			lastMove = 0;
+		}
+
+	// Process Selected Object
+		ProcessSelectedObject();
+		CheckNameHelper();
+
+		// Check figure hovering
+		var component = Camera.Components.Get<CameraComponent>();
+		var ray = component.ScreenPixelToRay( Mouse.Position );
+		var trace = Scene.Trace.Ray( ray, 900 ).WithAnyTags( Player.ToString().ToLower(), "item", "book" ).WithoutTags( "dead", "death_cell" ).Run();
+
+		if ( !trace.Hit )
+		{
+			CheckPreviousObject();
+			return;
+		}
+		
+		CheckFigure(trace);
+		CheckItem(trace);
+		CheckBook(trace);
+	}
+
+	void CheckNameHelper()
+	{
+		if (!SettingsMenu.PieceNames)
+			return;
+		
+		var component = Camera.Components.Get<CameraComponent>();
+		var ray = component.ScreenPixelToRay( Mouse.Position );
+		var trace = Scene.Trace.Ray( ray, 900 ).WithAnyTags( "black", "white", "item", "book" ).WithoutTags( "dead", "death_cell" ).Run();
+		
+		if ( !trace.Hit )
+			return;
+
+		var figure = trace.GameObject.Components.Get<FigureComponent>();
+		
+		if ( figure is not {IsUsable: true} )
+			return;
+		
+		var transform = new Transform(trace.GameObject.Transform.Position, new Angles(0, -90, 0).ToRotation());
+		transform.Position = transform.Position.WithX( transform.Position.x + 60 );
+		Gizmo.Draw.ScreenText( figure.GetTranslatedType(), Mouse.Position.WithX( Mouse.Position.x + 20 ), "Roboto", 24f );
+	}
+	
+	void CheckBook(SceneTraceResult trace)
+	{
+		if (!trace.GameObject.Tags.Has("book"))
+			return;
+
+		CheckPreviousObject();
+
+		var book = trace.GameObject;
+
+		var outline = book.Components.GetOrCreate<HighlightOutline>();
+		outline.Enabled = true;
+		outline.Color = Color.Cyan;
+
+		HitObject = book;
+	}
+	
+	void CheckItem(SceneTraceResult trace)
+	{
+		if (!trace.GameObject.Tags.Has("item") || !trace.GameObject.Tags.Has(Player.ToString().ToLower()+"_item"))
+			return;
+		
+		if (Scene.Components.GetInDescendants<GameController>().IsPaused)
+			return;
+		
+		if (UsedItem)
+			return;
+		
+		var chess = Scene.Components.GetInDescendants<ChessComponent>(  );
+		CheckPreviousObject();
+
+		var item = trace.GameObject;
+
+		if ( SelectedObject == null && chess.Turn == Player)
+		{
+			var outline = item.Components.GetOrCreate<HighlightOutline>();
+			outline.Enabled = true;
+			outline.Color = Color.Cyan;	
+		}
+
+		HitObject = item;
+	}
+
+	void CheckFigure(SceneTraceResult trace)
+	{
+		if (!trace.GameObject.Tags.Has(Player.ToString().ToLower()))
+			return;
+
+		var chess = Scene.Components.GetInDescendants<ChessComponent>(  );
+		CheckPreviousObject();
+
+		var figure = trace.GameObject;
+		var figureComponent = figure.Components.Get<FigureComponent>();
+
+		if (!figureComponent.IsUsable)
+			return;
+		
+		if ( SelectedObject == null && chess.Turn == Player)
+		{
+			var outline = figure.Components.GetOrCreate<HighlightOutline>();
+			outline.Enabled = true;
+			outline.Color = Color.Cyan;	
+		}
+
+		if ( chess.Turn == Player )
+		{
+			var renderer = figureComponent.GameObject.Components.Get<SkinnedModelRenderer>();
+			var attach = renderer.GetAttachment( "head" );
+			if (attach.HasValue)
+				UpdateHandPos(figureComponent.GameObject.Id, attach.Value.Position, attach.Value.Rotation);	
+		}
+
+		HitObject = figure;
+	}
+
+	[Broadcast]
+	void UpdateHandPos(Guid Id, Vector3 pos, Rotation rot)
+	{
+		if (!Rpc.Caller.IsActive)
+			return;
+		
+		if (Rpc.Calling)
+			return;
+
+		var gameObject = Scene.Directory.FindByGuid( Id );
+		
+		if (Hand.Parent != gameObject)
+			Hand.SetParent(gameObject);
+		
+		if ( gameObject != null )
+		{
+			Hand.Transform.Position = gameObject.Transform.Position;
+			Hand.Transform.LocalPosition = Vector3.Zero.WithX( -150 )
+				.WithY( -140 )
+				.WithZ( -55 );
+		}
+		else
+		{
+			Hand.Transform.Position = pos;
+		}
+		
+		Hand.Transform.Rotation = Hand.Transform.Rotation.Angles().WithYaw( rot.Angles().yaw );
+	}
+	
+	[Broadcast]
+	void SetHoldHand(bool hold)
+	{
+		if (!Rpc.Caller.IsActive)
+			return;
+		
+		if (Rpc.Calling)
+			return;
+		
+		Hand.Components.Get<SkinnedModelRenderer>().SceneModel.SetAnimParameter("hold", hold);
+	}
+
+	void ProcessSelectedObject()
+	{
+		if ( SelectedObject == null )
+			return;
+		
+		if (SelectedObject.Tags.Has( Player.ToString().ToLower() ))
+			ProcessFigure();
+
+		if ( SelectedObject.Tags.Has( "item" ) )
+			ProcessItem();
+	}
+
+	void ProcessFigure()
+	{
+		var component = Camera.Components.Get<CameraComponent>();
+		var ray = component.ScreenPixelToRay( Mouse.Position );
+		var trace = Scene.Trace.Ray( ray, 900 ).WithoutTags( Player.ToString().ToLower() ).Run();
+
+		var pos = SelectedObject.Transform.Position;
+		
+	// Outline
+		var selectedObjectOutline = SelectedObject.Components.GetOrCreate<HighlightOutline>();
+		if ( trace.Hit && trace.GameObject.Tags.Has("cell") )
+		{
+			var cell = trace.GameObject;
+			var cellComponent = cell.Components.Get<CellComponent>();
+			var selectedFigure = SelectedObject.Components.Get<FigureComponent>();
+			var selectedCell = selectedFigure.GetCellComponent();
+			if ( (cellComponent.Current == null || cellComponent.Current != null
+			      && cellComponent.Current.Tags.Has( Player == FigureColor.White ? "black" : "white" )) && ChessComponent.IsValidMove(Move.Create()
+				      .SetFigure(selectedFigure)
+				      .SetCell(selectedCell)
+				      .SetNewPosition( cellComponent.Position )
+				      .SetOriginalPosition(selectedCell.Position)
+				      .Build(), Scene.Components.GetInDescendants<ChessComponent>()) || cellComponent.Current == SelectedObject)
+			{
+				var colliderBox = cell.Components.Get<BoxCollider>();
+				pos.x = colliderBox.KeyframeBody.MassCenter.x;
+				pos.y = colliderBox.KeyframeBody.MassCenter.y;
+			
+				selectedObjectOutline.Color = Color.Green;	
+			}
+			else
+			{
+				pos.x = trace.EndPosition.x;
+				pos.y = trace.EndPosition.y;
+				
+				selectedObjectOutline.Color = Color.Red;
+			}
+		}
+		else
+		{
+			pos.x = trace.EndPosition.x;
+			pos.y = trace.EndPosition.y;
+			
+			selectedObjectOutline.Color = Color.Red;
+		}
+
+		if ( SettingsMenu.Debug )
+		{
+			foreach ( var cell in Scene.Components.GetInDescendants<ChessComponent>().Pieces )
+			{
+				var transform = new Transform
+				{
+					Position = cell.Transform.Position.WithZ( cell.Transform.Position.z + 50 )
+				};
+				Gizmo.Draw.Text(cell.CellName + "\n" + (cell.Current != null) + "\n" + (cell.GetPiece()?.GetCellComponent() == cell) + "\n" + cell.GetPiece()?.Type, transform);
+			}
+		}
+		
+		SelectedObject.Transform.Position = pos;
+	}
+	
+	void ProcessItem()
+	{
+		var item = SelectedObject.Components.Get<ItemComponent>();
+		item.ProcessSelection(Camera);
+	}
+
+	// Select figure or deselect if selected
+	void SelectObject()
+	{
+		var chess = Scene.Components.GetInDescendants<ChessComponent>();
+
+		if ( HitObject == null )
+			return;
+		
+		if ( HitObject.Tags.Has( "book" ) && SelectedObject == null )
+		{
+			Sound.Play( "click_item", HitObject.Transform.Position );
+			OpenBook();
+			return;
+		}
+
+		if (chess.Turn != Player)
+			return;
+
+		if ( SelectedObject == null )
+		{
+			SelectedObject = HitObject;
+			var selectedObjectOutline = SelectedObject.Components.GetOrCreate<HighlightOutline>();
+			selectedObjectOutline.Color = Color.Green;
+
+			if ( SelectedObject.Tags.Has( Player.ToString().ToLower() ) )
+			{
+				var selectedFigure = SelectedObject.Components.Get<FigureComponent>();
+
+				if ( selectedFigure == null )
+				{
+					SelectedObject = null;
+					return;
+				}
+
+				SetHoldHand( true );
+
+				var selectedCell = selectedFigure.GetCellComponent();
+				var cellOutline = selectedCell.Components.GetOrCreate<HighlightOutline>();
+				cellOutline.Enabled = true;
+				cellOutline.InsideColor = Color.Cyan.WithAlpha( 0.2f );
+			
+				var validCells = chess.Pieces.Cast<CellComponent>().Where( cellComponent => chess.IsValidMove( Move.Create()
+					.SetFigure( selectedFigure )
+					.SetCell( selectedCell )
+					.SetNewPosition( cellComponent.Position )
+					.SetOriginalPosition( selectedCell.Position )
+					.Build() ) && (cellComponent.Current == null || !cellComponent.Current.Tags.Has( Player.ToString().ToLower() )) );
+			
+				foreach ( var cellComponent in validCells )
+				{
+					cellOutline = cellComponent.Components.GetOrCreate<HighlightOutline>();
+					cellOutline.Enabled = true;
+					cellOutline.InsideColor = Color.Green.WithAlpha( 0.2f );
+				}
+
+				var board = Scene.Components.GetInDescendants<ChessComponent>();
+				cellOutline = board[Player == FigureColor.White ? board.WhiteKing : board.BlackKing].GetCell()?.Components.GetOrCreate<HighlightOutline>();
+				if ( cellOutline != null )
+				{
+					if (board.IsCheck( Player ))
+					{
+						cellOutline.Enabled = true;
+						cellOutline.InsideColor = Color.Red.WithAlpha( 0.2f );
+					}
+					else
+					{
+						cellOutline.Enabled = false;
+						cellOutline.InsideColor = Color.Transparent;
+					}
+				}
+			} else if ( SelectedObject.Tags.Has( "item" ) && SelectedObject.Tags.Has(Player.ToString().ToLower()+"_item") )
+			{
+				if (UsedItem)
+					return;
+				
+				var item = SelectedObject.Components.Get<ItemComponent>();
+				item.OnSelect();
+			}
+			else
+			{
+				SelectedObject = null;
+			}
+
+			Sound.Play( "click_item", HitObject.Transform.Position );
+		}
+		else
+		{
+			UnselectObject();
+		}
+	}
+
+	async void OpenBook()
+	{
+		var book = HitObject.Components.Get<SkinnedModelRenderer>();
+		var controller = Scene.Components.GetInDescendants<GameController>();
+		var light = HitObject.Components.GetInDescendants<PointLight>(true);
+		
+		if ( BookOpened )
+		{
+			book.SceneModel.SetAnimParameter("open", false);
+			Camera.Components.Get<Pixelate>().Scale = 0.001f;
+			
+			book.GameObject.Transform.Position = new Vector3( -58.817f, 568.158f, 55.915f );
+			book.GameObject.Transform.Rotation = new Angles(0, 180, -75).ToRotation();
+
+			light.Enabled = false;
+
+			BookOpened = false;
+		}
+		else
+		{
+			BookOpened = true;
+			
+			Animation.Stop(Camera, "cam_rotation");
+		
+			book.SceneModel.SetAnimParameter("open", BookOpened);
+			var origAngles = Camera.Transform.Rotation.Angles();
+			var endAngles = controller.GetCameraMainPos().Transform.Rotation.Angles();
+			Animation.Play( Camera, "cam_rotation", 2.5f, ( gameObject, progress ) =>
+			{
+				var angles = Camera.Transform.Rotation.Angles();
+				angles.yaw = origAngles.yaw + (endAngles.yaw - origAngles.yaw) * progress;
+				angles.pitch = origAngles.pitch + (endAngles.pitch - origAngles.pitch) * progress;
+				angles.roll = origAngles.roll + (endAngles.roll - origAngles.roll) * progress;
+				Camera.Transform.Rotation = Rotation.From( angles );
+			} ).OnComplete( gameObject =>
+			{
+				if (BookOpened)
+					Camera.Components.Get<Pixelate>().Scale = 0;
+			});
+			
+			light.Enabled = true;
+
+			if ( Player == FigureColor.White )
+			{
+				book.GameObject.Transform.Position = Camera.Transform.Position.WithX( Camera.Transform.Position.x + 85 )
+					.WithZ( Camera.Transform.Position.z - 150 );
+				book.GameObject.Transform.Rotation = new Angles(0, 90, -30).ToRotation();	
+			}
+			else
+			{
+				book.GameObject.Transform.Position = Camera.Transform.Position.WithX( Camera.Transform.Position.x - 85 )
+					.WithZ( Camera.Transform.Position.z - 150 );
+				book.GameObject.Transform.Rotation = new Angles(0, -90, -30).ToRotation();
+			}
+		}
+
+		SelectedObject = null;
+	}
+
+	public bool UsedItem;
+	
+	// Unselect figure
+	void UnselectObject()
+	{
+		if ( SelectedObject.Tags.Has( Player.ToString().ToLower() ) )
+		{
+			var component = Camera.Components.Get<CameraComponent>();
+			var ray = component.ScreenPixelToRay( Mouse.Position );
+			var trace = Scene.Trace.Ray( ray, 900 ).WithoutTags( Player.ToString().ToLower() ).Run();
+
+			if ( !trace.Hit || !trace.GameObject.Tags.Has( "cell" ) )
+				return;
+		
+			var cell = trace.GameObject;
+			var cellComponent = cell.Components.Get<CellComponent>();
+			var figureComponent = SelectedObject.Components.Get<FigureComponent>();
+			
+			SetHoldHand( false );
+
+			DoMove( cellComponent, figureComponent );
+		} else if ( SelectedObject.Tags.Has( "item" ) && SelectedObject.Tags.Has(Player.ToString().ToLower()+"_item") )
+		{
+			var itemComponent = SelectedObject.Components.Get<ItemComponent>();
+			itemComponent.OnDeselect(Camera);
+		}
+	}
+
+	TimeSince lastMove;
+
+	[Broadcast]
+	public void SendMove( Guid targetId, Guid figureId )
+	{
+		if (Rpc.Calling)
+			return;
+		
+		var target = Scene.Directory.FindByGuid( targetId ).Components.Get<CellComponent>(  );
+		var figure = Scene.Directory.FindByGuid( figureId ).Components.Get<FigureComponent>(  );
+		
+		var cell = figure.GetCell().Components.Get<CellComponent>();
+		var board = Scene.Components.GetInDescendants<ChessComponent>();
+
+		var move = Move.Create()
+			.SetFigure( figure )
+			.SetCell( cell )
+			.SetNewPosition( target.Position )
+			.SetOriginalPosition( cell.Position )
+			.Build();
+
+		if ( target.Current != null && target.Current.Tags.Has( figure.Color == FigureColor.White ? "black" : "white" ) )
+		{
+			var killedFigure = target.Current.Components.Get<FigureComponent>();
+			killedFigure.Kill();
+			move.CapturedFigure = killedFigure;
+		}
+
+		var chess = Scene.Components.GetInDescendants<ChessComponent>();
+		foreach ( var piece in chess.Pieces )
+		{
+			if (piece.Components.TryGet<HighlightOutline>( out var cellOutline ))
+			{
+				cellOutline.Enabled = false;	
+			}
+		}
+
+		Sound.Play( "figure_use", figure.Transform.Position );
+		
+		if ( move.OriginalPosition != move.NewPosition )
+		{
+			board.executedMoves.Add(move);
+		
+			board.moveIndex = board.executedMoves.Count - 1;
+
+			board.HandleKingChecked();
+			
+			var cellOutline = board[Player == FigureColor.White ? board.WhiteKing : board.BlackKing].GetCell()?.Components.GetOrCreate<HighlightOutline>();
+			if ( cellOutline != null )
+			{
+				if (board.IsCheck( Player ))
+				{
+					cellOutline.Enabled = true;
+					cellOutline.InsideColor = Color.Red.WithAlpha( 0.2f );
+				}
+				else
+				{
+					cellOutline.Enabled = false;
+					cellOutline.InsideColor = Color.Transparent;
+				}
+			}
+		}
+	}
+	
+	public void DoMove( CellComponent target, FigureComponent figure )
+	{
+		var cell = figure.GetCell().Components.Get<CellComponent>();
+		var board = Scene.Components.GetInDescendants<ChessComponent>();
+
+		var move = Move.Create()
+			.SetFigure( figure )
+			.SetCell( cell )
+			.SetNewPosition( target.Position )
+			.SetOriginalPosition( cell.Position )
+			.Build();
+		
+		if (!board.IsValidMove(move) && target.Position != cell.Position)
+			return;
+		
+		if ( target.Current != null && target.Current.Tags.Has( figure.Color.ToString().ToLower() ) && target.Current != SelectedObject )
+			return;
+
+		if ( target.Current != null && target.Current.Tags.Has( figure.Color == FigureColor.White ? "black" : "white" ) )
+		{
+			var killedFigure = target.Current.Components.Get<FigureComponent>();
+			killedFigure.Kill();
+			move.CapturedFigure = killedFigure;
+		}
+
+		var chess = Scene.Components.GetInDescendants<ChessComponent>();
+		foreach ( var piece in chess.Pieces )
+		{
+			if (piece.Components.TryGet<HighlightOutline>( out var cellOutline ))
+			{
+				cellOutline.Enabled = false;	
+			}
+		}
+		
+		if (move.Parameter is not MoveCastle)
+			figure.Cell = target.GameObject.Id;
+		
+		Sound.Play( "figure_use", figure.Transform.Position );
+		
+		if ( move.OriginalPosition != move.NewPosition )
+		{
+			Sandbox.Services.Stats.SetValue( "time_per_move", lastMove );
+			Sandbox.Services.Stats.Increment( "moves", 1 );
+			
+			board.executedMoves.Add(move);
+		
+			board.moveIndex = board.executedMoves.Count - 1;
+			
+			if ( move.Parameter is MoveEnPassant && move.CapturedFigure != null )
+			{
+				var killedFigure = move.CapturedFigure.Components.Get<FigureComponent>();
+				killedFigure.Kill();
+			}
+
+			UsedItem = false;
+			
+			move.Parameter?.Execute(move, board);
+
+			board.HandleKingChecked();
+		}
+
+		SendMove( target.GameObject.Id, figure.GameObject.Id );
+
+		if ( SelectedObject != null )
+		{
+			var selectedObjectOutline = SelectedObject.Components.GetOrCreate<HighlightOutline>();
+			selectedObjectOutline.Color = HitObject == SelectedObject ? Color.Cyan : Color.Transparent;
+			selectedObjectOutline.Enabled = HitObject == SelectedObject;
+			SelectedObject = null;
+		}
+
+		if (!board.IsEndGame)
+			board.HandleEndGame();
+		
+		if ( !board.IsEndGame && !board.HaveMoves(Player))
+		{
+			board.Won(Player == FigureColor.White ? FigureColor.Black : FigureColor.White);
+		}
+
+		if ( board.IsEndGame )
+		{
+			var gameController = Scene.Components.GetInDescendants<GameController>();
+			gameController.Won(board.EndGame.WonSide);
+			return;
+		}
+
+		if ( board.Turn == FigureColor.Black && Scene.Components.GetInDescendants<GameController>().GameType == GameType.Artificial)
+			ChessAI.NextMove( board );
+
+		lastMove = 0;
+	}
+
+	// check previous hovered object
+	void CheckPreviousObject()
+	{
+		if ( HitObject == null )
+			return;
+			
+		if ( HitObject == SelectedObject )
+			return;
+
+		UpdateHandPos( new Guid(), new Vector3( 800, 13, 40 ), new Rotation() );
+		
+		var hitObjectOutline = HitObject.Components.GetOrCreate<HighlightOutline>();
+		hitObjectOutline.Color = Color.Transparent;
+		hitObjectOutline.Enabled = false;
+		HitObject = null;
+	}
+
+	void Start()
+	{
+		var board = Scene.Components.GetInDescendants<ChessComponent>();
+		board.Start();
+	}
+	
+	void Restart()
+	{
+		var board = Scene.Components.GetInDescendants<ChessComponent>();
+		board.Restart();
+	}
+	
+	void Stop()
+	{
+		var board = Scene.Components.GetInDescendants<ChessComponent>();
+		board.Stop();
+	}
+	
+	void Win()
+	{
+		var gameController = Scene.Components.GetInDescendants<GameController>();
+		gameController.Won(Player);
+	}
+
+	public void Left()
+	{
+		var gameController = Scene.Components.GetInDescendants<GameController>();
+		var camera = Scene.Components.GetInDescendants<CameraComponent>().GameObject;
+		
+		if (BookOpened)
+			return;
+		
+		if (gameController.IsPaused)
+			return;
+		
+		if (Animation.HasAnimation(camera, "cam_rotation"))
+			Animation.Stop(camera, "cam_rotation");
+
+		var cameraRotation = gameController.GetCameraDirPos();
+		if ( Player == FigureColor.Black )
+		{
+			cameraRotation = gameController.GetCameraMainPos();
+		}
+
+		if (camera.Transform.Rotation == cameraRotation.Transform.Rotation)
+			return;
+
+		var origAngles = Camera.Transform.Rotation.Angles();
+		var endAngles = cameraRotation.Transform.Rotation.Angles();
+		Animation.Play( camera, "cam_rotation", 2.5f, ( gameObject, progress ) =>
+		{
+			//var vector = new Vector3();
+			//camera.Transform.Rotation = Rotation.SmoothDamp( camera.Transform.Rotation, gameController.CameraLeftPos.Transform.Rotation, ref vector, 0.4f, Time.Delta);
+			var angles = Camera.Transform.Rotation.Angles();
+			angles.yaw = origAngles.yaw + (endAngles.yaw - origAngles.yaw) * progress;
+			angles.pitch = origAngles.pitch + (endAngles.pitch - origAngles.pitch) * progress;
+			angles.roll = origAngles.roll + (endAngles.roll - origAngles.roll) * progress;
+			Camera.Transform.Rotation = Rotation.From( angles );
+		} );
+	}
+	
+	public void Right()
+	{
+		var gameController = Scene.Components.GetInDescendants<GameController>();
+		var camera = Scene.Components.GetInDescendants<CameraComponent>().GameObject;
+		
+		if (BookOpened)
+			return;
+		
+		if (gameController.IsPaused)
+			return;
+		
+		if (Animation.HasAnimation(camera, "cam_rotation"))
+			Animation.Stop(camera, "cam_rotation");
+		
+		var cameraRotation = gameController.GetCameraMainPos();
+		if ( Player == FigureColor.Black )
+		{
+			cameraRotation = gameController.GetCameraDirPos();
+		}
+		
+		if (camera.Transform.Rotation == cameraRotation.Transform.Rotation)
+			return;
+
+		var origAngles = Camera.Transform.Rotation.Angles();
+		var endAngles = cameraRotation.Transform.Rotation.Angles();
+		Animation.Play( camera, "cam_rotation", 2.5f, ( gameObject, progress ) =>
+		{
+			//var vector = new Vector3();
+			//camera.Transform.Rotation = Rotation.SmoothDamp( camera.Transform.Rotation, gameController.CameraMainPos.Transform.Rotation, ref vector, 0.4f, Time.Delta);
+			var angles = Camera.Transform.Rotation.Angles();
+			angles.yaw = origAngles.yaw + (endAngles.yaw - origAngles.yaw) * progress;
+			angles.pitch = origAngles.pitch + (endAngles.pitch - origAngles.pitch) * progress;
+			angles.roll = origAngles.roll + (endAngles.roll - origAngles.roll) * progress;
+			Camera.Transform.Rotation = Rotation.From( angles );
+		} );
+	}
+}

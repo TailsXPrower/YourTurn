@@ -1,0 +1,14 @@
+D:\SteamX\steamapps\common\sbox\.vs\output\yourturn.xml
+D:\SteamX\steamapps\common\sbox\.vs\output\yourturn.deps.json
+D:\SteamX\steamapps\common\sbox\.vs\output\yourturn.dll
+D:\SteamX\steamapps\common\sbox\.vs\output\yourturn.pdb
+D:\SteamX\steamapps\common\sbox\addons\yourturn\code\obj\Debug\yourturn.csproj.AssemblyReference.cache
+D:\SteamX\steamapps\common\sbox\addons\yourturn\code\obj\Debug\yourturn.GeneratedMSBuildEditorConfig.editorconfig
+D:\SteamX\steamapps\common\sbox\addons\yourturn\code\obj\Debug\yourturn.AssemblyInfoInputs.cache
+D:\SteamX\steamapps\common\sbox\addons\yourturn\code\obj\Debug\yourturn.AssemblyInfo.cs
+D:\SteamX\steamapps\common\sbox\addons\yourturn\code\obj\Debug\yourturn.csproj.CoreCompileInputs.cache
+D:\SteamX\steamapps\common\sbox\addons\yourturn\code\obj\Debug\yourturn.csproj.CopyComplete
+D:\SteamX\steamapps\common\sbox\addons\yourturn\code\obj\Debug\yourturn.dll
+D:\SteamX\steamapps\common\sbox\addons\yourturn\code\obj\Debug\refint\yourturn.dll
+D:\SteamX\steamapps\common\sbox\addons\yourturn\code\obj\Debug\yourturn.pdb
+D:\SteamX\steamapps\common\sbox\addons\yourturn\code\obj\Debug\ref\yourturn.dll

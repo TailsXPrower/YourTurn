@@ -1,0 +1,59 @@
+BookPanel
+{
+	position: absolute;
+	top: 0;
+	left: 225px;
+	right: 230px;
+	bottom: 125px;
+	justify-content: center;
+	align-items: center;
+	font-weight: bold;
+	border-radius: 20px;
+	pointer-events: all;
+
+	.panel {
+		border: black 2px;
+		justify-content: center;
+		align-items: center;
+		height: 100%;
+		width: 50%;
+		background-color: #444;
+		background-size: cover;
+	}
+	
+	.close-button {
+		position: absolute;
+		right: 50px;
+		top: 50px;
+		width: 100px;
+		height: 60px;
+		font-size: 25px;
+		font-family: Poppins;
+		background-color: white;
+		border: 10px black;
+		border-radius: 10px;
+		justify-content: center;
+		align-items: center;
+		
+		&:hover {
+			background-color: gray;
+		}
+	}
+	
+	.title
+	{
+		font-size: 25px;
+		font-family: Poppins;
+		color: #fff;
+	}
+}
+
+.left {
+	position: absolute;
+	left: 0;
+}
+
+.right {
+	position: absolute;
+	right: 0;
+}

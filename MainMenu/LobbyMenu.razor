@@ -1,0 +1,68 @@
+@using global::Menu
+@using Sandbox.Network
+@using Sandbox.UI
+@inherits Panel
+
+@namespace Menu
+
+<root class="panel lobby-menu">
+	<div class="title">
+		LOBBIES
+	</div>
+	<div class="lobbies" @ref=Lobbies>
+	</div>
+	<div class="lobby-buttons">
+		<Button onclick=@Return>Return</Button>
+		<Button onclick=@Join>Join</Button>
+		<Button onclick=@Create>Create</Button>
+	</div>
+</root>
+
+@code
+{
+	public MenuComponent Menu;
+	public Panel Lobbies;
+
+	public LobbyEntry SelectedLobby;
+
+	public async void LoadLobbies()
+	{
+		var list = await GameNetworkSystem.QueryLobbies();
+		foreach ( var lobbyInformation in list )
+		{
+			if (lobbyInformation.Members >= 2)
+				return;
+			
+			var entry = Lobbies.AddChild<LobbyEntry>();
+			entry.Lobby = lobbyInformation;
+			entry.Lobby.MaxMembers = 2;
+			entry.OnClick = () =>
+			{
+				SelectedLobby?.SetClass("selected", false);
+				entry.SetClass( "selected", true );
+				SelectedLobby = entry;
+			};
+		}
+	}
+	
+	void Create()
+	{
+		GameController.IsMultiplayer = true;
+		Game.ActiveScene.LoadFromFile( "scenes/chess.scene" );
+	}
+	
+	void Join()
+	{
+		if ( SelectedLobby == null ) 
+			return;
+
+		LoadingScreen.Title = "Connecting...";
+		GameNetworkSystem.Connect(SelectedLobby.Lobby.LobbyId);
+	}
+
+	void Return()
+	{
+		Lobbies.DeleteChildren();
+		Menu.MainMenu(this);
+	}
+}

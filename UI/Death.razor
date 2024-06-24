@@ -1,0 +1,13 @@
+@using Sandbox.UI
+@inherits Panel
+@attribute [StyleSheet]
+
+<root style="width: 300px; height: 300px;">
+	<img src="/resources/skull.png" style="position: absolute; width: 300px; height: 300px;">
+	<img src="/resources/cross.png" style="position: absolute; width: 300px; height: 300px; opacity: 0" @ref=Cross>
+</root>
+
+@code
+{
+	public Image Cross;
+}

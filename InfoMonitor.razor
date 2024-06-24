@@ -1,0 +1,262 @@
+@using Sandbox;
+@using Sandbox.Razor
+@using Sandbox.UI;
+@using System
+@inherits PanelComponent
+
+<root>
+	<div class="left panel">
+		@if ( Chess.Turn == FigureColor.Black && !Controller.IsPaused )
+		{
+			<div class="name" style="background-color: rgba(0, 255, 0, 0.1)">
+				<div>@FirstPlayerName</div>
+			</div>
+		}
+		else
+		{
+			<div class="name">
+				<div>@FirstPlayerName</div>
+			</div>
+		}
+		<DeathCounter class="counter" style="border-right: 8px #fff" @ref=BlackCounter></DeathCounter>
+		<div class="counter" style="border-right: 8px #fff; opacity: 0" @ref=BlackTimer>
+			<div class="title">@BlackTime</div>
+		</div>
+	</div>
+	<div class="right panel">
+		@if ( Chess.Turn == FigureColor.White && !Controller.IsPaused )
+		{
+			<div class="name" style="flex-direction: row-reverse; background-color: rgba(0, 255, 0, 0.1)">
+				<div>@SecondPlayerName</div>
+			</div>
+		}
+		else
+		{
+			<div class="name" style="flex-direction: row-reverse;">
+				<div>@SecondPlayerName</div>
+			</div>
+		}
+		<DeathCounter class="counter" style="border-left: 8px #fff" @ref=WhiteCounter></DeathCounter>
+		<div class="counter" style="border-left: 8px #fff; opacity: 0" @ref=WhiteTimer>
+			<div class="title">@WhiteTime</div>
+		</div>
+	</div>
+	<div style="width: 100%; height: 80%; bottom: 0; position: absolute; align-items: center; justify-content: center; opacity: 0;" @ref=WinInfo>
+		<div class="title">@WonPlayer.ToUpper() WINS!</div>
+	</div>
+</root>
+
+@code
+{
+	[Property] public GameController Controller { get; set; }
+	[Property] public ChessComponent Chess { get; set; }
+	
+	[Property, TextArea] public string FirstPlayerName { get; set; } = "Hello World!";
+	[Property, TextArea] public string SecondPlayerName { get; set; } = "Hello World!";
+	
+	public string WonPlayer { get; set; } = "LoneFox";
+
+	public DeathCounter WhiteCounter;
+	public DeathCounter BlackCounter;
+	
+	public Panel WhiteTimer;
+	public string WhiteTime = "04:00";
+	
+	public Panel BlackTimer;
+	public string BlackTime = "04:00";
+	
+	public Panel WinInfo;
+
+	public void UpdateDeath(FigureColor color, int death)
+	{
+		if ( _ticking != null )
+		{
+			_ticking.Stop();
+			_ticking = null;
+		}
+
+		BlackCounter.Style.Opacity = 1;
+		WhiteCounter.Style.Opacity = 1;
+		BlackTimer.Style.Opacity = 0;
+		WhiteTimer.Style.Opacity = 0;
+		Sound.Play("death", GameObject.Transform.Position);
+		switch ( color )
+		{
+			case FigureColor.Black:
+				{
+					var anim = Animation.Play( GameObject, "black_death", 4, EasingFunc.Linear,( gameObject, progress ) =>
+					{
+						BlackCounter[death-1].Cross.Style.Opacity = MathF.Sin( progress / 0.05f) / 2 + 0.5f;
+					} );
+					anim.OnComplete( gameObject =>
+					{
+						BlackCounter[death-1].Cross.Style.Opacity = 1;
+					} );
+					break;
+				}
+			case FigureColor.White:
+				{
+					var anim = Animation.Play( GameObject, "white_death", 4, EasingFunc.Linear,( gameObject, progress ) =>
+					{
+						WhiteCounter[death-1].Cross.Style.Opacity = MathF.Sin(progress / 0.05f) / 2 + 0.5f;
+					} );
+					anim.OnComplete( gameObject =>
+					{
+						WhiteCounter[death-1].Cross.Style.Opacity = 1;
+					} );
+					break;
+				}
+			case FigureColor.None:
+				break;
+			default:
+				throw new ArgumentOutOfRangeException();
+		}
+	}
+
+	SoundHandle _ticking;
+
+	public void UpdateTimer(FigureColor color, int time)
+	{
+		_ticking ??= Sound.Play( "clock_ticking", GameObject.Transform.Position );
+		
+		BlackCounter.Style.Opacity = 0;
+		WhiteCounter.Style.Opacity = 0;
+		BlackTimer.Style.Opacity = 1;
+		WhiteTimer.Style.Opacity = 1;
+		
+		var span = TimeSpan.FromSeconds( time );
+		
+		switch ( color )
+		{
+			case FigureColor.Black:
+				{
+					BlackTime = $"{span.Minutes:D2}:{span.Seconds:D2}";
+					break;
+				}
+			case FigureColor.White:
+				{
+					WhiteTime = $"{span.Minutes:D2}:{span.Seconds:D2}";
+					break;
+				}
+			case FigureColor.None:
+				break;
+			default:
+				throw new ArgumentOutOfRangeException();
+		}
+	}
+	
+	bool _won;
+	
+	public void Win(FigureColor color)
+	{
+		_won = true;
+		
+		switch ( color )
+		{
+			case FigureColor.Black:
+				{
+					WonPlayer = FirstPlayerName;
+					break;
+				}
+			case FigureColor.White:
+				{
+					WonPlayer = SecondPlayerName;
+					break;
+				}
+			case FigureColor.None:
+				break;
+			default:
+				throw new ArgumentOutOfRangeException();
+		}
+		
+		WinInfo.Style.Opacity = 1;
+		WhiteCounter.Style.Opacity = 0;
+		BlackCounter.Style.Opacity = 0;
+		WhiteTimer.Style.Opacity = 0;
+		BlackTimer.Style.Opacity = 0;
+		
+		if ( _ticking != null )
+		{
+			_ticking.Stop();
+			_ticking = null;
+		}
+	}
+
+	public void Reset()
+	{
+		if ( _ticking != null )
+		{
+			_ticking.Stop();
+			_ticking = null;
+		}
+		
+		BlackCounter.Style.Opacity = 1;
+		WhiteCounter.Style.Opacity = 1;
+		BlackTimer.Style.Opacity = 0;
+		WhiteTimer.Style.Opacity = 0;
+
+		foreach ( var whiteCounterDeath in WhiteCounter.Deaths )
+		{
+			whiteCounterDeath.Cross.Style.Opacity = 0;
+		}
+		
+		foreach ( var blackCounterDeath in BlackCounter.Deaths )
+		{
+			blackCounterDeath.Cross.Style.Opacity = 0;
+		}
+	}
+
+	protected override void OnUpdate()
+	{
+		base.OnUpdate();
+		
+		var controller = Scene.Components.GetInDescendants<GameController>();
+
+		SecondPlayerName = controller.PlayersName.TryGetValue( FigureColor.White, out var whitePlayer ) ? whitePlayer : "???";
+		FirstPlayerName = controller.PlayersName.TryGetValue( FigureColor.Black, out var blackPlayer ) ? blackPlayer : "???";
+
+		switch ( controller.PlayersName.Count )
+		{
+			case 2:
+				{
+					if ( _ticking != null || _won)
+						return;
+						
+					WhiteCounter.Style.Opacity = 1;
+					BlackCounter.Style.Opacity = 1;
+					break;
+				}
+			case 1:
+				{
+					foreach ( var color in controller.PlayersName.Keys )
+					{
+						switch (color)
+						{
+							case FigureColor.Black:
+								if (WhiteCounter != null)
+									WhiteCounter.Style.Opacity = 0;
+								break;
+							case FigureColor.White:
+								if (BlackCounter != null)
+									BlackCounter.Style.Opacity = 0;
+								break;
+							case FigureColor.None:
+								break;
+							default:
+								throw new ArgumentOutOfRangeException();
+						}
+					}
+					break;
+				}
+			case 0:
+				SecondPlayerName = Connection.Local.DisplayName;
+				break;
+		}
+
+	}
+
+	/// <summary>
+	/// the hash determines if the system should be rebuilt. If it changes, it will be rebuilt
+	/// </summary>
+	protected override int BuildHash() => HashCode.Combine( FirstPlayerName, SecondPlayerName, WonPlayer, BlackTime, WhiteTime, Chess.Turn, Controller.IsPaused );
+}

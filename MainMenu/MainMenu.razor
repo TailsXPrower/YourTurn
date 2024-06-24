@@ -1,0 +1,43 @@
+@using Sandbox.UI
+@inherits Panel
+
+@namespace Menu
+
+<root class="panel">
+	<div class="title">
+		YOUR TURN
+	</div>
+    <div class="buttons">
+    	<button onclick=@NewGame>New Game</button>
+	    <button onclick=@Multiplayer>Multiplayer</button>
+	    <button onclick=@Settings>Settings</button>
+	    <button onclick=@Statistics>Statistics</button>
+	    <button onclick=@Game.Close>Exit</button>
+	</div>
+</root>
+
+@code
+{
+	public MenuComponent Menu;
+	
+	void NewGame()
+	{
+		GameController.IsMultiplayer = false;
+		Scene.LoadFromFile( "scenes/chess.scene" );
+	}
+
+	void Multiplayer()
+	{
+		Menu.Multiplayer(this);
+	}
+	
+	void Statistics()
+	{
+		Menu.Statistics(this);
+	}
+	
+	void Settings()
+	{
+		Menu.Settings(this);
+	}
+}

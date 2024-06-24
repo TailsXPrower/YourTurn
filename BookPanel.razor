@@ -1,0 +1,43 @@
+@using Sandbox;
+@using Sandbox.UI;
+@inherits PanelComponent
+
+<root style="opacity: 0">
+	<div class="panel left" style="background-image: url(resources/book/page01.png)">
+	</div>
+	<div class="panel right" style="background-image: url(resources/book/page02.png)">
+		<Button class="close-button" onclick=@Close>Close</Button>
+	</div>
+</root>
+
+@code
+{
+	[Property, TextArea] public string MyStringValue { get; set; } = "Hello World!";
+
+	public void Show()
+	{
+		Panel.Style.Opacity = 1;
+	}
+
+	public void Close()
+	{
+		Panel.Style.Opacity = 0;
+		
+		var book = GameObject.Parent.Components.Get<SkinnedModelRenderer>();
+		book.SceneModel.SetAnimParameter("open", false);
+
+		var gameUI = Scene.Components.GetInDescendants<GameUIComponent>();
+		gameUI.BookOpened = false;
+
+		book.GameObject.Transform.Position = new Vector3( -58.817f, 568.158f, 55.915f );
+		book.GameObject.Transform.Rotation = new Angles(0, 180, -75).ToRotation();
+		
+		var light = GameObject.Parent.Components.GetInDescendants<PointLight>(true);
+		light.Enabled = false;
+	}
+
+	/// <summary>
+	/// the hash determines if the system should be rebuilt. If it changes, it will be rebuilt
+	/// </summary>
+	protected override int BuildHash() => System.HashCode.Combine( MyStringValue );
+}

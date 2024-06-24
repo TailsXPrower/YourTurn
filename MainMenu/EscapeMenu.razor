@@ -1,0 +1,68 @@
+﻿@using Sandbox;
+@using Sandbox.Network
+@using Sandbox.UI;
+@using System
+@inherits PanelComponent
+
+<root>
+	<div class="buttons">
+		<Button onclick=@Resume>RESUME</Button>
+		<Button onclick=@ReturnToMainMenu>EXIT TO MAIN MENU</Button>
+	</div>
+</root>
+
+@code
+{
+	[Property] public bool IsOpen { get; set; } = false;
+	public bool IsVisible = true;
+	float Alpha = 1f;
+	Panel ContentPanel;
+
+	protected override void OnUpdate()
+	{
+		if(Input.EscapePressed)
+		{
+			if(!IsOpen)
+			{
+				IsOpen = true;
+			}
+			else if(IsVisible)
+			{
+				IsOpen = false;
+			}
+		}
+
+		if(IsVisible && Alpha < 1f)
+		{
+			Alpha += RealTime.Delta;
+			Alpha = Math.Clamp(Alpha, 0f, 1f);
+		}
+		else if(!IsVisible && Alpha > 0f)
+		{
+			Alpha -= RealTime.Delta;
+			Alpha = Math.Clamp(Alpha, 0f, 1f);
+		}
+		
+		Panel.Style.Opacity = (IsOpen ? 1 : 0);
+		if(ContentPanel.IsValid())
+			ContentPanel.Style.Opacity = Alpha;
+
+		//SetClass("no-interact", !IsOpen || !IsVisible);
+	}
+
+	void Resume()
+	{
+		IsOpen = false;
+	}
+
+	void ReturnToMainMenu()
+	{
+		if (GameNetworkSystem.IsActive)
+			GameNetworkSystem.Disconnect();
+		
+		Scene.LoadFromFile("Scenes/mainmenu.scene");
+	}
+
+	protected override int BuildHash() => System.HashCode.Combine( Alpha );
+}
+

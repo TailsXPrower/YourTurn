@@ -1,0 +1,26 @@
+@using Sandbox.Network
+@using Sandbox.Services
+@using Sandbox.UI
+@using System
+@inherits Panel
+
+@namespace Menu
+
+<root class="stat-entry">
+	<div class="name">
+		@Stat.Title
+	</div>
+	<div class="value">
+    	@Stat.ValueString
+	</div>
+</root>
+
+@code
+{
+	public Stats.PlayerStat Stat;
+
+	/// <summary>
+	/// the hash determines if the system should be rebuilt. If it changes, it will be rebuilt
+	/// </summary>
+	protected override int BuildHash() => System.HashCode.Combine( Stat );
+}

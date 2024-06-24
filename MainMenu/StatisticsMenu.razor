@@ -1,0 +1,47 @@
+@using global::Menu
+@using Sandbox.UI
+@inherits Panel
+
+@namespace Menu
+
+<root class="panel stat-menu">
+	<div class="title">
+		Stats
+	</div>
+	<div class="stats" @ref=Stats></div>
+	<div class="stat-buttons">
+		<Button onclick=@Return>Return</Button>
+		<Button onclick=@Refresh>Refresh</Button>
+	</div>
+</root>
+
+@code
+{
+	public Panel Stats;
+	public MenuComponent Menu;
+	
+	public void LoadStats()
+	{
+		foreach ( var playerStat in Sandbox.Services.Stats.LocalPlayer )
+		{
+			var entry = Stats.AddChild<StatEntry>();
+			entry.Stat = playerStat;
+		}
+	}
+
+	void Refresh()
+	{
+		Stats.DeleteChildren();
+		foreach ( var playerStat in Sandbox.Services.Stats.LocalPlayer )
+		{
+			var entry = Stats.AddChild<StatEntry>();
+			entry.Stat = playerStat;
+		}
+	}
+
+	void Return()
+	{
+		Stats.DeleteChildren();
+		Menu.MainMenu(this);
+	}
+}

@@ -1,0 +1,300 @@
+MenuComponent
+{
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	font-weight: bold;
+	align-items: center;
+	border-radius: 20px;
+	pointer-events: all;
+
+	.panel {
+		margin-left: 10%;
+		height: 80%;
+		width: 50%;
+		flex-direction: column;
+		
+		.buttons {
+			width: 100%;
+			height: 80%;
+			align-items: center;
+			flex-direction: column;
+			
+			Button {
+				background-color: #fff;
+				height: 132px;
+				width: 50%;
+				font-size: 60px;
+				font-family: Poppins;
+				align-items: center;
+				justify-content: center;
+				border: black 10px;
+				margin: 10px;
+				
+				&:hover {
+					background-color: #2b303c;
+					color: white;
+				}
+			}
+		}
+	}
+	
+	.title
+	{
+		width: 100%;
+		height: 20%;
+		font-size: 100px;
+		font-family: Poppins;
+		justify-content: center;
+		color: #fff;
+		padding-top: 10px;
+	}
+}
+
+.lobby-menu {
+	position: absolute;
+	color: white;
+	align-items: center;
+	
+	.lobbies {
+		width: 80%;
+		height: 60%;
+		display: flex;
+		flex-wrap: wrap;
+		flex-direction: row;
+		overflow-y: scroll;
+		background-color: #222731;
+		border: black 4px;
+	}
+	
+	.lobby-buttons {
+		width: 100%;
+		height: 20%;
+		flex-direction: row;
+		align-items: center;
+
+		Button {
+			background-color: #2b303c;
+			height: 60%;
+			width: 40%;
+			font-size: 42px;
+			font-family: Poppins;
+			align-items: center;
+			justify-content: center;
+			border: black 4px;
+			margin: 10px;
+
+			&:hover {
+				background-color: #222731;
+				color: white;
+			}
+		}
+	}
+}
+
+.lobby-entry {
+	width: 100%;
+	height: 80px;
+	background-color: #2b303c;
+	align-items: center;
+	border: black 4px;
+	transition: all 0.2s ease-in-out;
+	margin-bottom: 10px;
+	
+	.name {
+		padding-left: 25px;
+		position: absolute;
+		left: 0;
+		font-family: Poppins;
+		color: #fff;
+		font-size: 36px;
+	}
+
+	.members {
+		padding-right: 25px;
+		position: absolute;
+		right: 0;
+		font-family: Poppins;
+		color: #fff;
+		font-size: 36px;
+	}
+
+	&:hover {
+		background-color: #222731;
+	}
+
+	&.selected {
+		background-color: #3b4352;
+		border: #515d7c 4px;
+		transition: all 0.2s ease-in-out;
+	}
+}
+
+.stat-menu {
+	position: absolute;
+	color: white;
+	align-items: center;
+
+	.stats {
+		width: 80%;
+		height: 60%;
+		display: flex;
+		flex-wrap: wrap;
+		flex-direction: row;
+		overflow-y: scroll;
+	}
+
+	.stat-buttons {
+		width: 80%;
+		height: 20%;
+		flex-direction: row;
+		align-items: center;
+
+		Button {
+			background-color: #2b303c;
+			height: 60%;
+			width: 50%;
+			font-size: 42px;
+			font-family: Poppins;
+			align-items: center;
+			justify-content: center;
+			border: black 4px;
+			margin: 10px;
+
+			&:hover {
+				background-color: #222731;
+				color: white;
+			}
+		}
+	}
+}
+
+.stat-entry {
+	width: 100%;
+	height: 80px;
+	background-color: #2b303c;
+	align-items: center;
+	border: black 4px;
+	transition: all 0.2s ease-in-out;
+	margin-bottom: 10px;
+
+	.name {
+		padding-left: 25px;
+		position: absolute;
+		left: 0;
+		font-family: Poppins;
+		color: #fff;
+		font-size: 36px;
+	}
+
+	.value {
+		padding-right: 25px;
+		position: absolute;
+		right: 0;
+		font-family: Poppins;
+		color: #fff;
+		font-size: 36px;
+	}
+
+	&:hover {
+		background-color: #222731;
+	}
+
+	&.selected {
+		background-color: #3b4352;
+		border: #515d7c 4px;
+		transition: all 0.2s ease-in-out;
+	}
+}
+
+.settings-menu {
+	position: absolute;
+	color: white;
+	align-items: center;
+
+	.settings {
+		width: auto;
+		height: 60%;
+		display: flex;
+		flex-wrap: wrap;
+		flex-direction: column;
+		background-color: #2b303c;
+		border: black 4px;
+		overflow-y: scroll;
+
+		.checkbox
+		{
+			padding: 20px 40px 0px 40px;
+			cursor: pointer;
+			color: rgba( white, 0.6 );
+			align-items: center;
+
+			label
+			{
+				pointer-events: none;
+				font-size: 36px;
+				font-family: Poppins;
+			}
+
+			> .checkmark
+			{
+				padding: 1px;
+				font-size: 22px;
+				border: 4px solid white;
+				text-align: center;
+				justify-content: center;
+				align-items: center;
+				color: transparent;
+				min-height: 24px;
+				margin-right: 10px;
+				pointer-events: none;
+			}
+
+			&.checked
+			{
+				> .checkmark
+				{
+					color: white;
+					background-color: black;
+				}
+			}
+
+			&:active
+			{
+				color: white;
+			}
+
+			&:hover
+			{
+				color: white;
+			}
+		}
+	}
+
+	.settings-buttons {
+		width: 80%;
+		height: 20%;
+		flex-direction: row;
+		align-items: center;
+		justify-content: center;
+
+		Button {
+			background-color: #2b303c;
+			height: 60%;
+			width: 50%;
+			font-size: 42px;
+			font-family: Poppins;
+			align-items: center;
+			justify-content: center;
+			border: black 4px;
+			margin: 10px;
+
+			&:hover {
+				background-color: #222731;
+				color: white;
+			}
+		}
+	}
+}

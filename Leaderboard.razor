@@ -1,0 +1,39 @@
+@using global::Menu
+@using Sandbox;
+@using Sandbox.Services
+@using Sandbox.UI;
+@inherits PanelComponent
+
+<root>
+	<div class="title">Leaders</div>
+	<div class="leaders">
+		@if ( Board != null )
+		{
+			@foreach ( var entry in Board.Entries )
+			{
+				<LeaderEntry Entry=@entry></LeaderEntry>
+			}	
+		}
+	</div>
+</root>
+
+@code
+{
+	public Leaderboards.Board Board;
+
+	protected override void OnStart()
+	{
+		base.OnStart();
+		LoadBoard();
+	}
+
+	public async void LoadBoard()
+	{
+		Board = Scene.Components.GetInDescendants<GameController>().GameType == GameType.Player ? Sandbox.Services.Leaderboards.Get( "wins" ) : Sandbox.Services.Leaderboards.Get( "wins_single" );
+		Board.MaxEntries = 10;
+		
+		await Board.Refresh();
+
+		StateHasChanged();
+	}
+}

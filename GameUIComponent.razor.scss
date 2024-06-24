@@ -1,0 +1,60 @@
+GameUIComponent
+{
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-color: transparent;
+	justify-content: center;
+	align-items: center;
+	font-weight: bold;
+	border-radius: 20px;
+	pointer-events: all;
+	z-index: 0;
+
+	.title
+	{
+		font-size: 25px;
+		font-family: Poppins;
+		color: #fff;
+	}
+	
+	.buttons {
+		position: absolute;
+		padding: 10px;
+		left: 0;
+		top: 0;
+	}
+	
+	.panel {
+		width: 10%;
+		height: 100%;
+	}
+	
+	Button {
+		background-color: blueviolet;
+		border: 4px darkviolet;
+		padding: 10px 40px;
+		opacity: 0.6;
+		font-size: 40px;
+		font-family: Poppins;
+		transition: all 0.2s ease-in-out;
+		color: #fff;
+		
+		&:hover {
+			opacity: 1;
+			transition: all 0.2s ease-in-out;
+		}
+	}
+	
+	.left {
+		position: absolute;
+		left: 0;
+	}
+
+	.right {
+		position: absolute;
+		right: 0;
+	}
+}

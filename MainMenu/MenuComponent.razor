@@ -1,0 +1,87 @@
+@using Sandbox;
+@using Sandbox.UI
+@inherits PanelComponent
+
+@namespace Menu
+
+<root>
+	<MainMenu Menu=@this @ref=mainMenu></MainMenu>
+	<LobbyMenu Menu=@this style="display: none" @ref=lobbyMenu></LobbyMenu>
+	<StatisticsMenu Menu=@this style="display: none" @ref=statisticsMenu></StatisticsMenu>
+	<SettingsMenu Menu=@this style="display: none" @ref=settingsMenu></SettingsMenu>
+</root>
+
+@code
+{
+	MainMenu mainMenu;
+	LobbyMenu lobbyMenu;
+	StatisticsMenu statisticsMenu;
+	SettingsMenu settingsMenu;
+
+	public void Multiplayer(Panel from)
+	{
+		lobbyMenu.Style.Display = DisplayMode.Flex;
+		lobbyMenu.Style.Opacity = 0;
+		var anim = Animation.Play( GameObject, "lobby-menu", 0.4f, EasingFunc.EaseInCubic, ( _, progress ) =>
+		{
+			lobbyMenu.Style.Opacity = progress;
+			from.Style.Opacity = 1 - progress;
+		} );
+		anim.OnComplete( _ =>
+		{
+			from.Style.Display = DisplayMode.None;
+			lobbyMenu.Style.Display = DisplayMode.Flex;
+		} );
+
+		lobbyMenu.LoadLobbies();
+	}
+	
+	public void MainMenu(Panel from)
+	{
+		mainMenu.Style.Display = DisplayMode.Flex;
+		mainMenu.Style.Opacity = 0;
+		var anim = Animation.Play( GameObject, "main-menu", 0.4f, EasingFunc.EaseInCubic, ( _, progress ) =>
+		{
+			mainMenu.Style.Opacity = progress;
+			from.Style.Opacity = 1 - progress;
+		} );
+		anim.OnComplete( _ =>
+		{
+			mainMenu.Style.Display = DisplayMode.Flex;
+			from.Style.Display = DisplayMode.None;
+		} );
+	}
+	
+	public void Statistics(Panel from)
+	{
+		statisticsMenu.Style.Display = DisplayMode.Flex;
+		statisticsMenu.Style.Opacity = 0;
+		var anim = Animation.Play( GameObject, "stats-menu", 0.4f, EasingFunc.EaseInCubic, ( _, progress ) =>
+		{
+			statisticsMenu.Style.Opacity = progress;
+			from.Style.Opacity = 1 - progress;
+		} );
+		anim.OnComplete( _ =>
+		{
+			from.Style.Display = DisplayMode.None;
+			statisticsMenu.Style.Display = DisplayMode.Flex;
+		} );
+		statisticsMenu.LoadStats();
+	}
+
+	public void Settings( Panel from )
+	{
+		settingsMenu.Style.Display = DisplayMode.Flex;
+		settingsMenu.Style.Opacity = 0;
+		var anim = Animation.Play( GameObject, "settings-menu", 0.4f, EasingFunc.EaseInCubic, ( _, progress ) =>
+		{
+			settingsMenu.Style.Opacity = progress;
+			from.Style.Opacity = 1 - progress;
+		} );
+		anim.OnComplete( _ =>
+		{
+			from.Style.Display = DisplayMode.None;
+			settingsMenu.Style.Display = DisplayMode.Flex;
+		} );
+	}
+}
